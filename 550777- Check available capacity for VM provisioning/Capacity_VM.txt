@@ -1,0 +1,76 @@
+<#
+.NOTES
+===========================================================================
+       
+Created on:        18/07/2019
+Created by:        CIS - Automation Factory (Kajal Sacheti [kajal.sacheti@wipro.com])
+Organization:      Wipro
+Filename:          Check available capacity for VM provisioning
+Version:           1.0
+===========================================================================
+
+.SYNOPSIS
+    
+    This function will check the capacity of the VM from the total VM's available
+
+.INPUTS
+
+   No inputs required 
+
+.OUTPUTS
+    
+    It will show whether the capacity is available or not .
+#>
+
+
+#Function to 
+Function Capacity{
+      
+      [CmdletBinding()]
+        
+        param(
+        # Define parameters below
+
+        [Parameter(Mandatory=$true)]
+        $location
+
+        )
+    try
+    {
+        #Retrieve Usage of the account
+        $names= Get-AzureRmVMUsage -Location $location
+        foreach($name in $names)
+        {
+            #Virtual machine count
+            $Localized_val = $name.name.LocalizedValue
+            if($($Localized_val) -match "Virtual Machines")
+            {
+                #Total limit & total occupied VM's of the VM on the account
+                $results = [pscustomobject]@{'name'=$Localized_val;'value'=$name.CurrentValue;'Limit'=$name.Limit;};
+            }
+        }
+            #Count of utilized VM
+            $result_value = $results.value
+            
+            #Maximum limit of VM's 
+            $result_limit = $results.Limit
+            if($result_value -gt $result_limit)
+            {
+                $flag = 1
+                Write-Output "The limit is not available, total VM created are $result_value"
+            }
+            else{
+                $flag = 0
+                Write-Output "We can process further for the VM creation"
+            }
+
+    $flag
+    }
+    catch
+    {
+        Write-Output "Error is : $_"
+    }
+}
+
+#Calling the function
+Capacity -location "West US"

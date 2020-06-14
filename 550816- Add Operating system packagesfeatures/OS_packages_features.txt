@@ -1,0 +1,43 @@
+try{
+    $ResourceGroup = "MyResourceGroup"
+    $VMName = "PUNAPP0015CDC"
+    $location = "West US"
+
+    #Check if VM exist
+    $VMCheck = Get-AzVM -ResourceGroupName MyResourceGroup -ErrorAction SilentlyContinue | Where-Object {$_.Name -match $VMName} | Select Name -ExpandProperty Name
+    if($VMCheck -eq $null){
+        Write-Output "$($VMName) does not exists.. Please check"
+    }
+    else
+    {
+        #Status of IIS Installation
+        $StatusIIS = Get-AzVMExtension -ResourceGroupName $ResourceGroup -VMName $VMName -ErrorAction SilentlyContinue | Where-Object {$_.Name -match "IIS"}| Select AutoUpgradeMinorVersion,ProvisioningState
+        #$StatusIIS
+            if(($StatusIIS.AutoUpgradeMinorVersion -eq $true) -and ($StatusIIS.ProvisioningState -eq "Succeeded"))
+            {
+                Write-Output "$($VMName) : It has IIS installed "
+            }
+            else
+            {
+                Write-Output "IIS is not installed in $($VMName)..Installing it"
+                #Install IIS
+                $PublicSettings = '{"commandToExecute":"powershell Add-WindowsFeature Web-Server"}'
+                Set-AzVMExtension -ExtensionName "IIS" -ResourceGroupName $ResourceGroup -VMName $VMName -Publisher "Microsoft.Compute" -ExtensionType "CustomScriptExtension" -TypeHandlerVersion 1.4 -SettingString $PublicSettings -Location $location -ErrorAction SilentlyContinue
+                    #Status of IIS Installation
+                    $StatusIIS_Add = Get-AzVMExtension -ResourceGroupName $ResourceGroup -VMName $VMName -ErrorAction SilentlyContinue | Where-Object {$_.Name -match "IIS"}| Select AutoUpgradeMinorVersion,ProvisioningState
+                        if(($StatusIIS_Add.AutoUpgradeMinorVersion -eq $true) -and ($StatusIIS_Add.ProvisioningState -eq "Succeeded"))
+                        {
+                            Write-Output "$($VMName) : IIS installed "
+                        }
+                        else
+                        {
+                            Write-Output "$($VMName) : Unable to install it"
+                        }
+            }
+    }
+}
+catch{
+        $_    
+}
+
+    

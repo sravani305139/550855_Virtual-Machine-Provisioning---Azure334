@@ -1,0 +1,100 @@
+
+
+
+####################Functions##################################
+
+Function Hostname_VM{
+try
+{
+    $location = "PUN"
+    $purpose = "APP"
+    $Type_data_center = "CDC"
+    $file_path = "/home/neha/Countfile.txt"
+
+    if(!(Test-Path $file_path))
+    {
+        Write-Output "File  does not exist..Manual intervention required" 
+        #Exit;  
+    }
+    
+    [int]$count = (Get-Content -Path $file_path) 
+    $unique_num = $count + 1
+    $to_int = $unique_num.ToString('0000')
+    $hostname = $location+$purpose+$to_int+$Type_data_center
+    $unique_num | Set-Content -Path $file_path
+    $hostname
+     
+}
+catch
+{
+    $_
+}
+}
+
+
+Function Capacity{
+try
+{
+    $names= Get-AzureRmVMUsage -Location "East US"
+    foreach($name in $names)
+    {
+        $Localized_val = $name.name.LocalizedValue
+        if($($Localized_val) -match "Virtual Machines")
+         {
+             $results = [pscustomobject]@{'name'=$Localized_val;'value'=$name.CurrentValue;'Limit'=$name.Limit;};
+         }
+     }
+
+        $result_value = $results.value
+        $result_limit = $results.Limit
+        if($result_value -gt $result_limit)
+        {
+            $flag = 1
+            #Write-Output "The limit is not available, total VM created are $result_value"
+        }
+        else{
+            $flag = 0
+            #Write-Output "We can process further for the VM creation"
+        }
+
+$flag
+}
+catch
+{
+    $_
+}
+}
+
+####################End Functions##################################
+
+try{
+
+    [string]$hostnamevm = Hostname_VM
+    #$Private_IP_VM = Private_IP_VM
+    $Capacity = Capacity
+    $Imagevm = "Win2008R2SP1"
+    $location = "West US"
+
+    #Checking the capacity
+    if(($Capacity -eq 0))
+    {
+        #Creating new VM
+        New-AzVm -ResourceGroupName "myResourceGroup" -Name $hostnamevm -Location $location -VirtualNetworkName "Vnet" -SubnetName "Subnet" -SecurityGroupName "NetworkSecurityGroup" -OpenPorts 80,3389 -PublicIpAddressName "PublicIpAddress" -Image "Win2008R2SP1" -Credential (Get-credential)
+            #Status of VM
+            $status_VM_Creation = Get-AzVM | Where-Object {$_.Name -eq $hostname}            
+            if($status_VM_Creation -eq $null){
+                Write-Output "Unable to create the VM - $hostname, please check again manually "
+            }
+            else{
+                Write-Output "$hostname : created successfully"
+            }
+            
+    }
+    else{
+        Write-Output "No capacity available"
+    }
+
+}
+catch{
+    Write-Output "Error is : $_"
+}

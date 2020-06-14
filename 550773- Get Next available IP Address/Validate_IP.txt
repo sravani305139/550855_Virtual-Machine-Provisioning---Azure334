@@ -1,0 +1,89 @@
+<#
+.NOTES
+===========================================================================
+       
+Created on:        18/07/2019
+Created by:        Kajal Sacheti [kajal.sacheti@wipro.com]
+Organization:      Wipro
+Filename:          Generate IP Address 
+Version:           1.0
+===========================================================================
+
+.SYNOPSIS
+    
+     This function will fetch the next available IP from azure.
+
+.INPUTS
+
+    The IP Adress, VnetName and ResourceGroup Name are required 
+
+
+.OUTPUTS
+    
+    This function will generate the available IP.
+#>
+
+
+
+
+Function Private_IP_VM
+{ 
+    [CmdletBinding()]
+    param(
+        # Define parameters below, each separated by a comma
+
+        [Parameter(Mandatory=$true)]
+        $IP_conf,
+
+        [Parameter(Mandatory=$true)]
+        $ResourceGroup,
+
+        [Parameter(Mandatory=$false)]
+        $VnetName
+
+        )
+try
+{
+    #$IP_conf = "10.0.0.10"
+    #$VnetName = "Vnet"
+    #$ResourceGroup = "myResourceGroup"
+
+    #Status of the given IP
+    $IP_status_azure = (Get-AzureRmVirtualNetwork -Name $VnetName -ResourceGroupName $ResourceGroup -ErrorAction SilentlyContinue| Test-AzureRmPrivateIPAddressAvailability -IPAddress $IP_conf -ErrorAction SilentlyContinue |select Available).Available
+    if($IP_status_azure -eq $false)
+    {
+      #Providing the next available IP
+      $New_IP_address = ((Get-AzureRmVirtualNetwork -Name $VnetName -ResourceGroupName $ResourceGroup -ErrorAction SilentlyContinue | Test-AzureRmPrivateIPAddressAvailability -IPAddress $IP_conf ) | select AvailableIPAddresses).AvailableIPAddresses[0]
+      $New_IP_address
+    }
+    elseif($IP_status_azure -eq $true)
+    {
+        #Available IP
+        Write-Output "$IP_conf : IP address is available"
+        $flags = 0
+        $IP_conf
+    }
+    else
+    {
+        $flags = 1
+        Write-Output "$IP_conf does not belong to the range of any subnet."
+    }
+}
+catch
+{
+    #Catch block
+    if($_ -contains "does not belong to the range of any subnet")
+    {
+        Write-Output "$IP_conf does not belong to the range of any subnet."
+        $flags = 1
+    }
+    elseif($_ -contains "Resource temporarily unavailable"){
+        Write-Output "Resource temporarily unavailable"
+    }
+
+}
+$flags
+}
+
+#Calling function
+Private_IP_VM -IP_conf "178.0.0.10" -ResourceGroup myResourceGroup -VnetName Vnet

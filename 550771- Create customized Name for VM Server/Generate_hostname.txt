@@ -1,0 +1,64 @@
+<#
+.NOTES
+===========================================================================
+       
+Created on:        18/07/2019
+Created by:        Kajal Sacheti [kajal.sacheti@wipro.com]
+Organization:      Wipro
+Filename:          Generate Hostname
+Version:           1.0
+===========================================================================
+
+.SYNOPSIS
+    
+    This function will create a hostname based on the location, purpose & type of data center
+
+.INPUTS
+
+    The location, purpose and type of data center are required 
+
+.OUTPUTS
+    
+    This function will generate the next hostname.
+#>
+
+
+Function Hostname_VM{
+try
+{
+    $location = "PUN"
+    $purpose = "APP"
+    $Type_data_center = "CDC"
+    $file_path = "/home/neha/Countfile.txt"
+    $file_path = "$PSScriptroot/Countfile.txt"
+
+    if(!(Test-Path $file_path))
+    {
+        Write-Output "File  does not exist..Manual intervention required" 
+        Exit;  
+    }
+    
+    #Content of the file
+    [int]$count = Get-Content -Path $file_path
+    
+    #Increment by +1
+    $unique_num = $count + 1
+
+    #Format in 4 digit
+    $to_int = $unique_num.ToString('0000')
+
+    #Creating the hostname based on the input details
+    $hostname = $location+$purpose+$to_int+$Type_data_center
+
+    #Set the last count in the file
+    $unique_num | Set-Content -Path $file_path
+    $hostname 
+}
+catch
+{
+    Write-Output "Error is  $_"
+}
+}
+
+#Calling function
+Hostname_VM
